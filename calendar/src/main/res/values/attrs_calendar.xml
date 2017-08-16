@@ -10,7 +10,10 @@
         <attr name="sunday_color" format="color|reference" />
         <attr name="selected_stroke_color" format="color|reference" />
         <attr name="normal_stroke_color" format="color|reference" />
-        <attr name="bg_color" format="color|reference" />
+        <attr name="normal_bg_color" format="color|reference" />
+        <attr name="selected_bg_color" format="color|reference" />
+        <!--含有数据的格子的背景颜色-->
+        <attr name="special_bg_color" format="color|reference" />
         <!--日期字体大小，描边大小-->
         <attr name="date_size" format="dimension" />
         <attr name="normal_stroke_size" format="dimension" />
@@ -39,7 +42,4 @@
         <attr name="default_calendar_type" format="integer" />
     </declare-styleable>
 
-    <declare-styleable name="RecordRecycleView">
-        <attr name="header_view_layout" format="reference" />
-    </declare-styleable>
 </resources>

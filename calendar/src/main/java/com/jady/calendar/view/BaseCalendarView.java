@@ -1,4 +1,4 @@
-package com.jady.calendar.view;
+package com.qeeniao.mobile.recordincomej.modules.calendar.ui;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -18,11 +18,15 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import com.jady.calendar.R;
-import com.jady.calendar.model.data.BaseCalendarData;
 import com.jady.calendar.model.annotations.CalendarType;
 import com.jady.calendar.model.annotations.DateType;
+import com.jady.calendar.model.data.BaseCalendarData;
+import com.jady.calendar.model.data.CalendarDataCenter;
 import com.jady.calendar.model.data.DayInfo;
 import com.jady.calendar.presenter.CalendarPresenter;
+import com.jady.calendar.utils.DataUtility;
+import com.jady.calendar.utils.TimeUtils;
+import com.jady.calendar.view.ICalendarView;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -35,11 +39,13 @@ public class BaseCalendarView extends View implements ICalendarView {
 
     //颜色
     //今天，当月日期颜色，上个月和下个月日期颜色,周六日期颜色，周日日期颜色
-    //选中日期的描边颜色，未选中日期的描边颜色，背景颜色
+    //选中日期的描边颜色，未选中日期的描边颜色，普通背景颜色，选中背景颜色，特定背景颜色，波浪图描边颜色，波浪图填充颜色
     protected int mTodayColor, mCurMonDateColor, mOtherMonDateColor, mSaturdayColor, mSundayColor,
-            mSelectedStrokeColor, mNormalStrokeColor, mBgColor;
+            mSelectedStrokeColor, mNormalStrokeColor, mNormalBgColor, mSelectedBgColor, mSpecialBgColor, mWaveViewStrokeColor, mWaveViewFillColor;
     //日期字体大小，描边大小
     protected float mDateSize, mNormalStrokeSize, mSelectedStrokeSize;
+    //数据：时间图标大小/时间字体大小，金钱字体大小，波浪图描边宽度
+    protected float mHourIconSize, mHourDataSize, mMoneyDataSize, mWaveViewStrokeSize;
 
     //当前月数据
     protected List<BaseCalendarData> mDataList = new ArrayList<>();
@@ -53,14 +59,13 @@ public class BaseCalendarView extends View implements ICalendarView {
     protected float mColumnWidth, mRowHeight;
     //总行数，为了扩展成可变行数预留
     protected int rowNums = 6;
-    //日期画笔，描边画笔
-    protected Paint mDatePaint, mNormalStrokePaint, mSelectedStrokePaint;
+    //日期画笔，背景画笔，描边画笔
+    protected Paint mDatePaint, mBgPaint, mNormalStrokePaint, mSelectedStrokePaint;
     //点击事件监听
     protected GestureDetector mGestureDetector;
     //处理数据的Presenter
     protected CalendarPresenter mCalendarPresenter;
-    // 选中日期所在的计算周期，今天所在的计算周期，比如每月5日作为月开始日，今天是5月28日，
-    // 那么今天所在的计算周期就是5月5日0时0分0点0秒0毫秒-6月5日0时0分0点0秒0毫秒
+    //选中日期考勤周期，今天所在的考勤周期
     protected Calendar[] checkinDate, todayCheckinDate;
     //当前选中日期所在行
     protected int mWeekRow = 1;
@@ -69,46 +74,60 @@ public class BaseCalendarView extends View implements ICalendarView {
     //当前正在渲染的Calendar,ViewPager会提前渲染前后两页的Calendar
     protected Calendar mCurRenderCalendar;
 
-    public BaseCalendarView(Context context) {
-        this(context, null);
+    public BaseCalendarView(Context context, TypedArray array, @CalendarType int calendarType) {
+        this(context, null, array, calendarType);
     }
 
-    public BaseCalendarView(Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
-        init(context, attrs);
+    public BaseCalendarView(Context context, @Nullable AttributeSet attrs, TypedArray array, @CalendarType int calendarType) {
+        this(context, attrs, 0, array, calendarType);
     }
 
-    private void init(Context context, AttributeSet attrs) {
-        initArray(context.obtainStyledAttributes(attrs, R.styleable.BaseCalendarView));
-        initVarible();
+    public BaseCalendarView(Context context, @Nullable AttributeSet attrs, int defStyleAttr, TypedArray array, @CalendarType int calendarType) {
+        super(context, attrs, defStyleAttr);
+
+        initArray(array);
+        initVarible(calendarType);
     }
 
     private void initArray(TypedArray array) {
-        //日历类型
-        curCalendarType = array.getInt(R.styleable.BaseCalendarView_calendar_type, CalendarType.CALENDAR_MONTH);
         mTodayColor = array.getColor(R.styleable.BaseCalendarView_today_color, 0xff3aa3db);
         mCurMonDateColor = array.getColor(R.styleable.BaseCalendarView_cur_month_date_color, 0xff555555);
         mOtherMonDateColor = array.getColor(R.styleable.BaseCalendarView_other_month_date_color, 0xffbdbcc1);
-        mSaturdayColor = array.getColor(R.styleable.BaseCalendarView_saturday_color, 0xffb5545c);
+        mSaturdayColor = array.getColor(R.styleable.BaseCalendarView_saturday_color, 0xff0d6c97);
         mSundayColor = array.getColor(R.styleable.BaseCalendarView_sunday_color, 0xffb5545c);
         mSelectedStrokeColor = array.getColor(R.styleable.BaseCalendarView_selected_stroke_color, 0xff3aa3da);
         mNormalStrokeColor = array.getColor(R.styleable.BaseCalendarView_normal_stroke_color, 0xffeeeeee);
-        mBgColor = array.getColor(R.styleable.BaseCalendarView_bg_color, 0xffffffff);
+        mNormalBgColor = array.getColor(R.styleable.BaseCalendarView_normal_bg_color, 0xffffffff);
+        mSelectedBgColor = array.getColor(R.styleable.BaseCalendarView_selected_bg_color, 0xffffffff);
+        mSpecialBgColor = array.getColor(R.styleable.BaseCalendarView_special_bg_color, 0xfff1f7ff);
 
         mDateSize = array.getDimension(R.styleable.BaseCalendarView_date_size, dp2px(10));
         mNormalStrokeSize = array.getDimension(R.styleable.BaseCalendarView_normal_stroke_size, 1);
         mSelectedStrokeSize = array.getDimension(R.styleable.BaseCalendarView_selected_stroke_size, dp2px(1));
-        array.recycle();
+
+        mHourIconSize = array.getDimension(R.styleable.BaseCalendarView_hour_icon_size, dp2px(12));
+        mHourDataSize = array.getDimension(R.styleable.BaseCalendarView_hour_data_size, dp2px(12));
+        mMoneyDataSize = array.getDimension(R.styleable.BaseCalendarView_money_data_size, dp2px(10));
+        mWaveViewStrokeSize = array.getDimension(R.styleable.BaseCalendarView_wave_view_stroke_size, 1);
+        mWaveViewStrokeColor = array.getColor(R.styleable.BaseCalendarView_wave_view_stroke_color, 0);
+        mWaveViewFillColor = array.getColor(R.styleable.BaseCalendarView_wave_view_fill_color, 0xffdff5ad);
+
+        //这里不能回收，需要在外面回收，因为array是各个CalendarView共同引用的
+//        array.recycle();
     }
 
-    private void initVarible() {
+    private void initVarible(@CalendarType int calendarType) {
+        //日历类型
+        this.curCalendarType = calendarType;
         //节假日、补休
         mHolodayBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.xiu_zhi);
         mDefferedBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ban_zhi);
         //日期画笔
-        mDatePaint = new Paint();
-        mDatePaint.setAntiAlias(true);
+        mDatePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG | Paint.LINEAR_TEXT_FLAG);
         mDatePaint.setTextSize(mDateSize);
+        //背景画笔
+        mBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG | Paint.LINEAR_TEXT_FLAG);
+        mBgPaint.setStyle(Paint.Style.FILL);
         //描边画笔
         mNormalStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG | Paint.LINEAR_TEXT_FLAG);
         mNormalStrokePaint.setStyle(Paint.Style.STROKE);
@@ -141,8 +160,8 @@ public class BaseCalendarView extends View implements ICalendarView {
         });
         //处理数据交互的Presenter
         mCalendarPresenter = new CalendarPresenter(this);
-        mToday = TimeUtility.getToday();
-        mCurRenderCalendar = TimeUtility.getToday();
+        mToday = TimeUtils.getToday();
+        mCurRenderCalendar = TimeUtils.getToday();
     }
 
     /**
@@ -186,29 +205,9 @@ public class BaseCalendarView extends View implements ICalendarView {
             return;
         }
 
-
-        if (entryArrayList.size() > 0) {
-
-            if (entryArrayList.size() == 7) {
-                drawWeekData(canvas, entryArrayList, 1);
-            } else if (entryArrayList.size() / 7 == 6) {
-                for (int i = 0; i < 6; i++) {
-                    List<Entry> entryList = new ArrayList<>();
-                    for (int j = 0; j < 7; j++) {
-                        int key = 7 * i + j;
-                        entryList.add(entryArrayList.get(key));
-                    }
-                    drawWeekData(canvas, entryList, i + 1);
-                }
-            }
-
-            //画完一次必须清掉，里面数据已改变，否则下次会画错。
-//            entryArrayList.clear();
-        }
-
         //当前选中日期所在的考勤周期
-        checkinDate = DCCommonMethod.getCheckinDate(mCurRenderCalendar);
-        todayCheckinDate = DCCommonMethod.getCheckinDate(mToday);
+        checkinDate = CalendarDataCenter.getMonthPeriod(mCurRenderCalendar);
+        todayCheckinDate = CalendarDataCenter.getMonthPeriod(mToday);
         if (curCalendarType == CalendarType.CALENDAR_MONTH) {
             //月历
             for (int i = 0; i < rowNums; i++) {
@@ -228,9 +227,9 @@ public class BaseCalendarView extends View implements ICalendarView {
     private void drawSelectedView(Canvas canvas) {
         int daysToFirstDay;
         if (curCalendarType == CalendarType.CALENDAR_MONTH) {
-            daysToFirstDay = DateController.getDaysToMonthFirstDay(mCurRenderCalendar);
+            daysToFirstDay = CalendarDataCenter.getDaysToMonthFirstDay(mCurRenderCalendar);
         } else {
-            daysToFirstDay = DateController.getDaysToWeekFirstDay(mCurRenderCalendar);
+            daysToFirstDay = CalendarDataCenter.getDaysToWeekFirstDay(mCurRenderCalendar);
         }
         int row = daysToFirstDay / 7;
         int column = daysToFirstDay % 7;
@@ -248,7 +247,7 @@ public class BaseCalendarView extends View implements ICalendarView {
         int dataIndex = row * 7 + column;
         BaseCalendarData calendarDaySumValue = mDataList.get(dataIndex);
         @DateType int dayType = DateController.getDayType(calendarDaySumValue.getDayInfo().getCalendar(), checkinDate);
-        drawCommonDateView(canvas, row, rect, calendarDaySumValue.getDayInfo(), dayType);
+        drawCommonDateView(canvas, row, rect, calendarDaySumValue, dayType);
         if (calendarDaySumValue.isHasData()) {
             drawHourDataView(canvas, rect, calendarDaySumValue);
             if (showMoney) {
@@ -263,13 +262,22 @@ public class BaseCalendarView extends View implements ICalendarView {
      * @param canvas
      * @param row
      * @param rect
-     * @param dayInfo
+     * @param daySumValue
      * @param dayType
      */
-    private void drawCommonDateView(Canvas canvas, int row, RectF rect, DayInfo dayInfo, @DateType int dayType) {
-        if (TimeUtility.isSameDay(mCurRenderCalendar, dayInfo.getCalendar())) {
+    private void drawCommonDateView(Canvas canvas, int row, RectF rect, BaseCalendarData daySumValue, @DateType int dayType) {
+        DayInfo dayInfo = daySumValue.getDayInfo();
+        if (TimeUtils.isSameDay(mCurRenderCalendar, dayInfo.getCalendar())) {
             setWeekRow(row);
         }
+        int bgPaintColor;
+        if (daySumValue.isHasData()) {
+            bgPaintColor = mSpecialBgColor;
+        } else {
+            bgPaintColor = mNormalBgColor;
+        }
+        mBgPaint.setColor(bgPaintColor);
+        canvas.drawRect(rect, mBgPaint);
         canvas.drawRect(rect, mNormalStrokePaint);
 
         int datePaintColor = mCurMonDateColor;
@@ -277,18 +285,39 @@ public class BaseCalendarView extends View implements ICalendarView {
 
         mDatePaint.setColor(datePaintColor);
         String date = dayInfo.getDay() + "";
-        float dateStartX = rect.right - mDatePaint.measureText(date) - dp2px(2);
+        float dateStartX = rect.left + dp2px(3);
         //mDatePaint.ascent() < 0,mDatePaint.descent() > 0,- (mDatePaint.ascent() - mDatePaint.descent()）是字体高度
-        float dateStartY = rect.bottom - Math.abs(mDatePaint.descent()) - dp2px(2);
+        float dateStartY = rect.top + dp2px(2) + Math.abs(mDatePaint.ascent());
         canvas.drawText(date, dateStartX, dateStartY, mDatePaint);
 
-        RectF holidayRect = new RectF(rect.left, rect.top, rect.left + dp2px(16), rect.top + dp2px(16));
+        RectF holidayRect = new RectF(rect.right - dp2px(16), rect.top, rect.right, rect.top + dp2px(16));
         if (dayInfo.isHoliday()) {
             canvas.drawBitmap(mHolodayBitmap, null, holidayRect, null);
         }
         if (dayInfo.isDeferred()) {
             canvas.drawBitmap(mDefferedBitmap, null, holidayRect, null);
         }
+    }
+
+    private int getDatePaintColor(DayInfo dayInfo, @DateType int dayType, int datePaintColor) {
+        if (curCalendarType == CalendarType.CALENDAR_MONTH) {
+            switch (dayType) {
+                case DateType.LAST_MONTH:
+                case DateType.NEXT_MONTH:
+                    datePaintColor = mOtherMonDateColor;
+                    break;
+                case DateType.CUR_MONTH:
+                    datePaintColor = getSpecialDatePaintColor(dayInfo);
+                    break;
+            }
+        } else {
+            if (dayInfo.getCalendar().getTimeInMillis() >= todayCheckinDate[1].getTimeInMillis()) {
+                datePaintColor = mOtherMonDateColor;
+            } else {
+                datePaintColor = getSpecialDatePaintColor(dayInfo);
+            }
+        }
+        return datePaintColor;
     }
 
     private void drawHourDataView(Canvas canvas, RectF rect, BaseCalendarData daySumHourValue) {
@@ -355,49 +384,37 @@ public class BaseCalendarView extends View implements ICalendarView {
             mHourIconPaint.setColor(color);
             canvas.drawText(icon, rect.right - dp2px(16), rect.top + TextUtility.getTextHeight(mHourPaint) + Math.abs(mHourIconPaint.ascent()), mHourIconPaint);
         }
-        mHourPaint.setColor(color);
         String resizedHour = TextUtility.getResizedText(hour, dp2px(12), mColumnWidth);
         float textWidth = mHourPaint.measureText(resizedHour);
-        canvas.drawText(resizedHour, rect.right - textWidth - dp2px(5), rect.top + Math.abs(mHourPaint.ascent()), mHourPaint);
+
+        //画背景
+        float hourStartX = rect.right - textWidth - dp2px(4);
+        //mDatePaint.ascent() < 0,mDatePaint.descent() > 0,- (mDatePaint.ascent() - mDatePaint.descent()）是字体高度
+        float hourStartY = rect.bottom - Math.abs(mHourPaint.descent()) - dp2px(2);
+        mHourPaint.setColor(0xff5aa2cf);
+        canvas.drawRect(hourStartX, hourStartY - Math.abs(mHourPaint.ascent()), hourStartX + textWidth + dp2px(1), rect.bottom - dp2px(2), mHourPaint);
+
+        mHourPaint.setColor(Color.WHITE);
+        canvas.drawText(resizedHour, hourStartX, hourStartY, mHourPaint);
     }
 
     private void drawMoneyDataView(Canvas canvas, RectF rect, BaseCalendarData daySumValue) {
         String moneyStr = DataUtility.formatNumber(Math.abs(daySumValue.getMoney()));
         if (!moneyStr.equals("0")) {
             if (daySumValue.getMoney() < 0) {
-                mMoneyPaint.setColor(0xffff5a5a);
+//                mMoneyPaint.setColor(0xffff5a5a);
                 moneyStr = "-" + "¥" + moneyStr;
             } else {
-                mMoneyPaint.setColor(0xff6a8d25);
+//                mMoneyPaint.setColor(0xff6a8d25);
                 moneyStr = "¥" + moneyStr;
             }
+            mMoneyPaint.setColor(0xff1e92c7);
             String resizedMoney = TextUtility.getResizedText(moneyStr, dp2px(10), mColumnWidth);
             float textWidth = mMoneyPaint.measureText(resizedMoney);
-            canvas.drawText(moneyStr, rect.right - textWidth - dp2px(5),
-                    rect.top + TextUtility.getTextHeight(mHourPaint) + TextUtility.getTextHeight(mHourIconPaint) + Math.abs(mMoneyPaint.ascent()),
+            canvas.drawText(moneyStr, rect.right - textWidth - dp2px(2),
+                    rect.bottom - TextUtility.getTextHeight(mHourPaint) - Math.abs(mMoneyPaint.descent()) - dp2px(2),
                     mMoneyPaint);
         }
-    }
-
-    private int getDatePaintColor(DayInfo dayInfo, @DateType int dayType, int datePaintColor) {
-        if (curCalendarType == CalendarType.CALENDAR_MONTH) {
-            switch (dayType) {
-                case DateType.LAST_MONTH:
-                case DateType.NEXT_MONTH:
-                    datePaintColor = mOtherMonDateColor;
-                    break;
-                case DateType.CUR_MONTH:
-                    datePaintColor = getSpecialDatePaintColor(dayInfo);
-                    break;
-            }
-        } else {
-            if (dayInfo.getCalendar().getTimeInMillis() >= todayCheckinDate[1].getTimeInMillis()) {
-                datePaintColor = mOtherMonDateColor;
-            } else {
-                datePaintColor = getSpecialDatePaintColor(dayInfo);
-            }
-        }
-        return datePaintColor;
     }
 
     private int getSpecialDatePaintColor(DayInfo dayInfo) {
@@ -422,13 +439,16 @@ public class BaseCalendarView extends View implements ICalendarView {
             return;
         }
         int dataIndex = row * 7 + column;
+        if (dataIndex > mDataList.size() - 1) {
+            return;
+        }
         BaseCalendarData calendarDaySumValue = mDataList.get(dataIndex);
         Calendar clickCalendar = calendarDaySumValue.getDayInfo().getCalendar();
         if (clickCalendar.getTimeInMillis() >= todayCheckinDate[1].getTimeInMillis()) {
             return;
         }
 
-        globalCalendar = TimeUtility.copyCalendar(clickCalendar);
+        globalCalendar = TimeUtils.copyCalendar(clickCalendar);
         //抛事件表示当前选择日期改变了
         EventCenter.post(new CalendarDateChangedEvent(calendarDaySumValue.isHasData()));
     }
@@ -514,7 +534,7 @@ public class BaseCalendarView extends View implements ICalendarView {
                 for (int j = 0; j < 7; j++) {
                     int key = i * 7 + j;
                     BaseCalendarData daySumValue = daySumValueList.get(key);
-                    if (TimeUtility.isDayBetweenTwoDate(daySumValue.getDayInfo().getCalendar(), checkingDate)) {
+                    if (TimeUtils.isDayBetweenTwoDate(daySumValue.getDayInfo().getCalendar(), checkingDate)) {
                         if (setValues(entryArrayList, j, daySumValue, curUserType)) return;
                     } else {
                         entryArrayList.add(new Entry(j, 0));

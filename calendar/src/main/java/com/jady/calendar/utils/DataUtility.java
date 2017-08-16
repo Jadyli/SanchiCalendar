@@ -40,10 +40,10 @@ public class DataUtility {
                 break;
         }
     }
-	
-	public static Scale getNumberScaleLen() {
-		return curScale;
-	}
+
+    public static Scale getNumberScaleLen() {
+        return curScale;
+    }
 
     /**
      * 一维数组转换为二维数组

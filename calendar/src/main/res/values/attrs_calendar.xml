@@ -27,14 +27,14 @@
         <attr name="month_count" format="integer" />
         <!--viewpager可以显示的周数限制，比如6000，大约100年-->
         <attr name="week_count" format="integer" />
-        <!--数据：时间字体大小，金钱字体大小、波浪图描边宽度-->
-        <attr name="hour_icon_size" format="dimension" />
-        <attr name="hour_data_size" format="dimension" />
-        <attr name="money_data_size" format="dimension" />
-        <attr name="wave_view_stroke_size" format="dimension" />
-        <!--波浪图描边颜色，波浪图填充颜色-->
-        <attr name="wave_view_stroke_color" format="color|reference" />
-        <attr name="wave_view_fill_color" format="color|reference" />
+        <!--多选：颜色-->
+        <attr name="multiple_center_color" format="color" />
+        <attr name="multiple_fill_color" format="color" />
+        <attr name="multiple_stroke_color" format="color" />
+        <!--多选：尺寸-->
+        <attr name="multiple_stroke_size" format="dimension" />
+        <attr name="multiple_external_radius" format="dimension" />
+        <attr name="multiple_inner_radius" format="dimension" />
     </declare-styleable>
 
     <declare-styleable name="CalendarContentLayout">

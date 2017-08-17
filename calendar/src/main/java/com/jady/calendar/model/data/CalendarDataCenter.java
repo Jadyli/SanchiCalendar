@@ -28,6 +28,7 @@ public class CalendarDataCenter {
     public static int weekFirstDay = WeekFirstDay.MONDAY;
     public static Context mContext;
     private SPUtils holidayCache;
+    public static boolean isInMultipleMode = false;
 
     private SparseArray<SparseArray<List<DayInfo>>> monthDayInfoArray;
     private SparseArray<SparseArray<List<DayInfo>>> weekDayInfoArray;

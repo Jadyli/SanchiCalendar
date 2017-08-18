@@ -207,7 +207,8 @@ public class MiCalendarView extends BaseCalendarView {
         mDatePaint.setColor(datePaintColor);
         String date = dayInfo.getDay() + "";
         float dateStartX = rect.left + dp2px(5);
-        //mDatePaint.ascent() < 0,mDatePaint.descent() > 0,- (mDatePaint.ascent() - mDatePaint.descent()）是字体高度
+        //mDatePaint.ascent() < 0,mDatePaint.descent() > 0,- (mDatePaint.ascent() - mDatePaint.descent()）是字体高度..
+
         float dateStartY = rect.top + dp2px(2) + Math.abs(mDatePaint.ascent());
         canvas.drawText(date, dateStartX, dateStartY, mDatePaint);
 

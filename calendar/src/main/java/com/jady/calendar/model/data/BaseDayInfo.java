@@ -7,7 +7,7 @@ import java.util.Calendar;
  *
  * 日期信息
  */
-public class DayInfo {
+public class BaseDayInfo {
     private String strDayInMonth = "", strFestival = "";
     /**
      * dayOfMonth:1005(10月5日，10*100+5)
@@ -23,10 +23,10 @@ public class DayInfo {
     private boolean isDecorBG = false;
     private boolean isDecorTL, isDecorT, isDecorTR, isDecorL, isDecorR;
 
-    public DayInfo() {
+    public BaseDayInfo() {
     }
 
-    public DayInfo(Calendar calendar) {
+    public BaseDayInfo(Calendar calendar) {
         this.year = calendar.get(Calendar.YEAR);
         this.month = calendar.get(Calendar.MONTH);
         this.day = calendar.get(Calendar.DATE);
@@ -205,7 +205,7 @@ public class DayInfo {
 
     @Override
     public String toString() {
-        return "DayInfo{" +
+        return "BaseDayInfo{" +
                 "strDayInMonth='" + strDayInMonth + '\'' +
                 ", strFestival='" + strFestival + '\'' +
                 ", year=" + year +

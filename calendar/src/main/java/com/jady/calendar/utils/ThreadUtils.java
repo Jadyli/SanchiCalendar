@@ -1,38 +1,50 @@
 package com.jady.calendar.utils;
 
-import rx.Observable;
-import rx.Subscriber;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.schedulers.Schedulers;
+
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * @Description: Created by jadyli on 2017/4/27.
  */
 public class ThreadUtils {
     public static void startChildThread(final ThreadCallback callback) {
-        Observable.create(new Observable.OnSubscribe<Object>() {
+        Flowable.create(new FlowableOnSubscribe<Void>() {
             @Override
-            public void call(Subscriber<? super Object> subscriber) {
-                try {
-                    callback.runOperate();
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-                subscriber.onNext(true);
+            public void subscribe(FlowableEmitter<Void> e) throws Exception {
+                callback.runOperate();
+                callback.onCompleted();
             }
-        }).subscribeOn(Schedulers.io())
+        }, BackpressureStrategy.ERROR)
+                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<Object>() {
+                .subscribe(new Subscriber<Void>() {
                     @Override
-                    public void call(Object o) {
-                        callback.onCompleted();
+                    public void onSubscribe(Subscription s) {
+
                     }
-                }, new Action1<Throwable>() {
+
                     @Override
-                    public void call(Throwable throwable) {
-                        callback.onError(throwable);
+                    public void onNext(Void aVoid) {
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        callback.onError(t);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        callback.onCompleted();
                     }
                 });
     }
+
 }

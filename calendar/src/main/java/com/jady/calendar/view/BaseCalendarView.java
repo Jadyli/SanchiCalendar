@@ -9,21 +9,20 @@ import android.util.AttributeSet;
 import android.view.View;
 
 import com.jady.calendar.model.annotations.CalendarType;
-import com.jady.calendar.model.data.DayInfo;
-import com.jady.calendar.presenter.CalendarPresenter;
+import com.jady.calendar.model.data.BaseDayInfo;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
 /**
  * @Description: Created by jadyli on 2017/5/9.
  */
-public abstract class BaseCalendarView extends View implements ICalendarView {
+public abstract class BaseCalendarView extends View {
 
-    protected List<DayInfo> mDayInfoList;
-    protected CalendarPresenter calendarPresenter;
+    protected List<BaseDayInfo> mDayInfoList = new ArrayList<>();
     //当前正在渲染的Calendar,ViewPager会提前渲染前后两页的Calendar
-    protected Calendar mCurRenderCalendar;
+    protected Calendar mCurRendingCalendar;
     @CalendarType
     protected int curCalendarType = CalendarType.CALENDAR_MONTH;
 
@@ -37,7 +36,6 @@ public abstract class BaseCalendarView extends View implements ICalendarView {
 
     public BaseCalendarView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        calendarPresenter = new CalendarPresenter(this);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
@@ -74,20 +72,14 @@ public abstract class BaseCalendarView extends View implements ICalendarView {
         onPostDrawGrid(canvas);
     }
 
-    public void updateData() {
-        calendarPresenter.loadData(mCurRenderCalendar, curCalendarType);
-    }
-
-    @Override
-    public void updateData(List<DayInfo> dayInfoList) {
+    public void updateData(List<BaseDayInfo> dayInfoList) {
         this.mDayInfoList.clear();
         this.mDayInfoList.addAll(dayInfoList);
-        invalidate();
     }
 
     protected abstract void onPreDrawGrid(Canvas canvas);
 
-    protected abstract void onDrawGrid(Canvas canvas, DayInfo dayInfo, int row, int column);
+    protected abstract void onDrawGrid(Canvas canvas, BaseDayInfo baseDayInfo, int row, int column);
 
     protected abstract void onPostDrawGrid(Canvas canvas);
 

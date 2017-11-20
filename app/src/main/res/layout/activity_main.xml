@@ -6,11 +6,12 @@
     android:layout_height="match_parent"
     tools:context="com.jady.sample.MainActivity">
 
-    <view
-        class="android.support.v7.widget.AppCompatCheckedTextView"
-        id="@+id/view2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        tools:layout_editor_absoluteX="92dp"
-        tools:layout_editor_absoluteY="117dp" />
+    <com.jady.calendar.view.MiCalendarView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:id="@+id/calendar_view"
+        app:layout_constraintDimensionRatio="H,1:1"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
 </android.support.constraint.ConstraintLayout>

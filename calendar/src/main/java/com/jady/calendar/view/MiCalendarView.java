@@ -2,28 +2,29 @@ package com.jady.calendar.view;
 
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.os.Build;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.WindowManager;
 
 import com.jady.calendar.R;
 import com.jady.calendar.model.annotations.CalendarType;
 import com.jady.calendar.model.annotations.DateType;
+import com.jady.calendar.model.data.BaseDayInfo;
 import com.jady.calendar.model.data.CalendarDataCenter;
-import com.jady.calendar.model.data.DayInfo;
-import com.jady.calendar.presenter.CalendarPresenter;
 import com.jady.calendar.utils.TimeUtils;
 
 import java.util.Calendar;
+import java.util.List;
 
 import static com.jady.calendar.model.data.CalendarDataCenter.globalCalendar;
 import static com.jady.calendar.model.data.CalendarDataCenter.isInMultipleMode;
@@ -52,7 +53,7 @@ public class MiCalendarView extends BaseCalendarView {
     //每个日历格子的列宽和行高
     protected float mColumnWidth, mRowHeight;
     //总行数，为了扩展成可变行数预留
-    protected int rowNums = 7;
+    protected int rowNums = 6;
     //日期画笔，背景画笔，描边画笔，时间画笔，金钱画笔，波浪图画笔
     protected Paint mDatePaint, mBgPaint, mNormalStrokePaint, mSelectedStrokePaint, mMultipleFillPaint, mMultipleStrokePaint;
     //点击事件监听
@@ -176,36 +177,37 @@ public class MiCalendarView extends BaseCalendarView {
             }
         });
         mToday = TimeUtils.getToday();
-        mCurRenderCalendar = TimeUtils.getToday();
+        mCurRendingCalendar = TimeUtils.getToday();
     }
 
     @Override
     protected void onPreDrawGrid(Canvas canvas) {
         //当前选中日期所在的考勤周期
-        monthPeriod = CalendarDataCenter.getMonthPeriod(mCurRenderCalendar);
+        monthPeriod = CalendarDataCenter.getMonthPeriod(mCurRendingCalendar);
         monthPeriodOfToday = CalendarDataCenter.getMonthPeriod(mToday);
     }
 
     @Override
-    protected void onDrawGrid(Canvas canvas, DayInfo dayInfo, int row, int column) {
-        RectF rect = new RectF(column * mColumnWidth, row * mRowHeight, (column + 1) * mColumnWidth, (row + 1) * mRowHeight);
-        int dataIndex = row * 7 + column;
-        @DateType int dayType = CalendarDataCenter.getDayType(dayInfo.getCalendar(), monthPeriod);
+    protected void onDrawGrid(Canvas canvas, BaseDayInfo baseDayInfo, int row, int column) {
 
-        Calendar calendar = dayInfo.getCalendar();
-        if (TimeUtils.isSameDay(mCurRenderCalendar, calendar)) {
+        RectF rect = new RectF(column * mColumnWidth, row * mRowHeight, (column + 1) * mColumnWidth, (row + 1) * mRowHeight);
+
+        @DateType int dayType = CalendarDataCenter.getDayType(baseDayInfo.getCalendar(), monthPeriod);
+
+        Calendar calendar = baseDayInfo.getCalendar();
+        if (TimeUtils.isSameDay(mCurRendingCalendar, calendar)) {
             setWeekRow(row);
         }
-        if (dayInfo.isToday()) {
+        if (baseDayInfo.isToday()) {
             mBgPaint.setColor(mTodayColor);
-            canvas.drawCircle(rect.right - mColumnWidth / 2, rect.bottom - mRowHeight / 2, mColumnWidth * 0.6f, mBgPaint);
+            canvas.drawCircle(rect.right - mColumnWidth / 2, rect.bottom - mRowHeight / 2, mColumnWidth * 0.3f, mBgPaint);
         }
 
         int datePaintColor = mCurMonDateColor;
-        datePaintColor = getDatePaintColor(dayInfo, dayType, datePaintColor);
+        datePaintColor = getDatePaintColor(baseDayInfo, dayType, datePaintColor);
 
         mDatePaint.setColor(datePaintColor);
-        String date = dayInfo.getDay() + "";
+        String date = baseDayInfo.getDay() + "";
         float dateStartX = rect.left + dp2px(5);
         //mDatePaint.ascent() < 0,mDatePaint.descent() > 0,- (mDatePaint.ascent() - mDatePaint.descent()）是字体高度..
 
@@ -213,12 +215,12 @@ public class MiCalendarView extends BaseCalendarView {
         canvas.drawText(date, dateStartX, dateStartY, mDatePaint);
 
         RectF holidayRect = new RectF(rect.right - dp2px(16), rect.top, rect.right, rect.top + dp2px(16));
-        if (dayInfo.isHoliday()) {
+        if (baseDayInfo.isHoliday()) {
         }
-        if (dayInfo.isDeferred()) {
+        if (baseDayInfo.isDeferred()) {
         }
 
-        if (isInMultipleMode && dayInfo.getCalendar().getTimeInMillis() < monthPeriodOfToday[1].getTimeInMillis()) {
+        if (isInMultipleMode && baseDayInfo.getCalendar().getTimeInMillis() < monthPeriodOfToday[1].getTimeInMillis()) {
             float cx = rect.right - dp2px(10);
             float cy = rect.top + dp2px(10);
             canvas.drawCircle(cx, cy, mMultipleExternalRadius, mMultipleStrokePaint);
@@ -236,42 +238,42 @@ public class MiCalendarView extends BaseCalendarView {
 
     }
 
-    private int getDatePaintColor(DayInfo dayInfo, @DateType int dayType, int datePaintColor) {
+    private int getDatePaintColor(BaseDayInfo baseDayInfo, @DateType int dayType, int datePaintColor) {
         if (curCalendarType == CalendarType.CALENDAR_MONTH) {
             switch (dayType) {
                 case DateType.LAST_MONTH:
                 case DateType.NEXT_MONTH:
-                    if (dayInfo.isSaturday()) {
+                    if (baseDayInfo.isSaturday()) {
                         datePaintColor = 0xff3b8b9d;
-                    } else if (dayInfo.isSunday()) {
+                    } else if (baseDayInfo.isSunday()) {
                         datePaintColor = 0xff7d7499;
                     } else {
                         datePaintColor = mOtherMonDateColor;
                     }
                     break;
                 case DateType.CUR_MONTH:
-                    datePaintColor = getSpecialDatePaintColor(dayInfo);
+                    datePaintColor = getSpecialDatePaintColor(baseDayInfo);
                     break;
             }
         } else {
-            if (dayInfo.getCalendar().getTimeInMillis() >= monthPeriodOfToday[1].getTimeInMillis()) {
+            if (baseDayInfo.getCalendar().getTimeInMillis() >= monthPeriodOfToday[1].getTimeInMillis()) {
                 datePaintColor = mOtherMonDateColor;
             } else {
-                datePaintColor = getSpecialDatePaintColor(dayInfo);
+                datePaintColor = getSpecialDatePaintColor(baseDayInfo);
             }
         }
         return datePaintColor;
     }
 
-    private int getSpecialDatePaintColor(DayInfo dayInfo) {
+    private int getSpecialDatePaintColor(BaseDayInfo baseDayInfo) {
         int datePaintColor = mCurMonDateColor;
-        if (dayInfo.isSaturday()) {
+        if (baseDayInfo.isSaturday()) {
             datePaintColor = mSaturdayColor;
         }
-        if (dayInfo.isSunday()) {
+        if (baseDayInfo.isSunday()) {
             datePaintColor = mSundayColor;
         }
-//        if (dayInfo.isToday()) {
+//        if (baseDayInfo.isToday()) {
 //            datePaintColor = mTodayColor;
 //        }
         return datePaintColor;
@@ -361,6 +363,40 @@ public class MiCalendarView extends BaseCalendarView {
 
         globalCalendar = TimeUtils.copyCalendar(clickCalendar);
         mDateList.add(clickCalendar.getTimeInMillis());
+    }
+
+    @Override
+    public void updateData(List<BaseDayInfo> dayInfoList) {
+        super.updateData(dayInfoList);
+        invalidate();
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        int displayWidth = getScreenWidth(getContext());
+        if (w < displayWidth) {
+            w = displayWidth;
+        }
+        mColumnWidth = w / 7;
+        if (curCalendarType == CalendarType.CALENDAR_MONTH) {
+            mRowHeight = h / 6.7f;
+        } else {
+            mRowHeight = h;
+        }
+    }
+
+    /**
+     * 获取屏幕的宽度px
+     *
+     * @param context 上下文
+     * @return 屏幕宽px
+     */
+    public static int getScreenWidth(Context context) {
+        WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        DisplayMetrics outMetrics = new DisplayMetrics();// 创建了一张白纸
+        windowManager.getDefaultDisplay().getMetrics(outMetrics);// 给白纸设置宽高
+        return outMetrics.widthPixels;
     }
 
     private float dp2px(float dpValue) {

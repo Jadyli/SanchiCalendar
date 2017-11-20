@@ -27,19 +27,19 @@ public class CalendarDataCenter {
     @WeekFirstDay
     public static int weekFirstDay = WeekFirstDay.MONDAY;
     public static Context mContext;
-    private SPUtils holidayCache;
+    private static SPUtils holidayCache;
     public static boolean isInMultipleMode = false;
 
-    private SparseArray<SparseArray<List<DayInfo>>> monthDayInfoArray;
-    private SparseArray<SparseArray<List<DayInfo>>> weekDayInfoArray;
+    private static SparseArray<SparseArray<List<BaseDayInfo>>> monthDayInfoArray;
+    private static SparseArray<SparseArray<List<BaseDayInfo>>> weekDayInfoArray;
     //节假日 年/月/月节假日列表
-    private SparseArray<SparseArray<List<Integer>>> holidayArray;
+    private static SparseArray<SparseArray<List<Integer>>> holidayArray;
     //补休日
-    private SparseArray<SparseArray<List<Integer>>> defferedArray;
+    private static SparseArray<SparseArray<List<Integer>>> defferedArray;
     //周六
-    private SparseArray<SparseArray<List<Integer>>> saturdayArray;
+    private static SparseArray<SparseArray<List<Integer>>> saturdayArray;
     //周日
-    private SparseArray<SparseArray<List<Integer>>> sundayArray;
+    private static SparseArray<SparseArray<List<Integer>>> sundayArray;
     /**
      * 全局共用的当前时间
      */
@@ -70,8 +70,8 @@ public class CalendarDataCenter {
      * @param calendar 日历当前选中的日期
      * @return
      */
-    public List<DayInfo> getMonthDayInfoList(Calendar calendar) {
-        //各个月的数据，HashMap<year_month,DayInfo[][]
+    public static List<BaseDayInfo> getMonthDayInfoList(Calendar calendar) {
+        //各个月的数据，HashMap<year_month,BaseDayInfo[][]
         Calendar tmpCalendar = getMonthPeriod(calendar)[0];
 
         //考勤日所在年
@@ -83,12 +83,12 @@ public class CalendarDataCenter {
             monthDayInfoArray = new SparseArray<>();
         }
         //一个月的数据
-        SparseArray<List<DayInfo>> monthArray = monthDayInfoArray.get(year);
+        SparseArray<List<BaseDayInfo>> monthArray = monthDayInfoArray.get(year);
         if (monthArray == null) {
             monthArray = new SparseArray<>();
             monthDayInfoArray.put(year, monthArray);
         }
-        List<DayInfo> dayInfoList = monthArray.get(month);
+        List<BaseDayInfo> dayInfoList = monthArray.get(month);
         if (dayInfoList == null) {
             dayInfoList = buildMonthDayInfoList(tmpCalendar);
             monthArray.put(month, dayInfoList);
@@ -102,7 +102,7 @@ public class CalendarDataCenter {
      * @param calendar
      * @return
      */
-    public List<DayInfo> getWeekDayInfoList(Calendar calendar) {
+    public static List<BaseDayInfo> getWeekDayInfoList(Calendar calendar) {
 
         Calendar tmpCalendar = TimeUtils.copyCalendar(calendar);
         int firstDay = getWeekFirstDay();
@@ -118,12 +118,12 @@ public class CalendarDataCenter {
         if (weekDayInfoArray == null) {
             weekDayInfoArray = new SparseArray<>();
         }
-        SparseArray<List<DayInfo>> weekArray = weekDayInfoArray.get(year);
+        SparseArray<List<BaseDayInfo>> weekArray = weekDayInfoArray.get(year);
         if (weekArray == null) {
             weekArray = new SparseArray<>();
             weekDayInfoArray.put(year, weekArray);
         }
-        List<DayInfo> dayInfoList = weekArray.get(week);
+        List<BaseDayInfo> dayInfoList = weekArray.get(week);
         if (dayInfoList == null) {
             dayInfoList = buildWeekDayInfoList(tmpCalendar);
             weekArray.put(week, dayInfoList);
@@ -147,9 +147,9 @@ public class CalendarDataCenter {
      * @param calendar
      * @return
      */
-    public List<DayInfo> buildMonthDayInfoList(Calendar calendar) {
+    public static List<BaseDayInfo> buildMonthDayInfoList(Calendar calendar) {
         Calendar tmpCalendar = TimeUtils.copyCalendar(calendar);
-        List<DayInfo> dayInfoList = new ArrayList<>();
+        List<BaseDayInfo> dayInfoList = new ArrayList<>();
         for (int i = 0; i < 6; i++) {
             dayInfoList.addAll(getWeekDayInfoList(tmpCalendar));
             tmpCalendar.add(Calendar.DATE, 7);
@@ -163,44 +163,44 @@ public class CalendarDataCenter {
      * @param calendar 周首日
      * @return
      */
-    public List<DayInfo> buildWeekDayInfoList(Calendar calendar) {
-        List<DayInfo> dayInfoList = new ArrayList<>();
+    public static List<BaseDayInfo> buildWeekDayInfoList(Calendar calendar) {
+        List<BaseDayInfo> dayInfoList = new ArrayList<>();
         for (int j = 0; j < 7; j++) {
-            DayInfo dayInfo = new DayInfo(calendar);
+            BaseDayInfo baseDayInfo = new BaseDayInfo(calendar);
             //节假日
-            if (getHoliday(calendar).contains(dayInfo.getDay())) {
-                dayInfo.setHoliday(true);
+            if (getHoliday(calendar).contains(baseDayInfo.getDay())) {
+                baseDayInfo.setHoliday(true);
             }
             //补休日
-            if (getDeffered(calendar).contains(dayInfo.getDay())) {
-                dayInfo.setDeferred(true);
+            if (getDeffered(calendar).contains(baseDayInfo.getDay())) {
+                baseDayInfo.setDeferred(true);
             }
             //周六
-            if (getWeekend(calendar, Calendar.SATURDAY).contains(dayInfo.getDay())) {
-                dayInfo.setSaturday(true);
+            if (getWeekend(calendar, Calendar.SATURDAY).contains(baseDayInfo.getDay())) {
+                baseDayInfo.setSaturday(true);
             }
             //周日
-            if (getWeekend(calendar, Calendar.SUNDAY).contains(dayInfo.getDay())) {
-                dayInfo.setSunday(true);
+            if (getWeekend(calendar, Calendar.SUNDAY).contains(baseDayInfo.getDay())) {
+                baseDayInfo.setSunday(true);
             }
             //今天
             if (TimeUtils.isToday(calendar)) {
-                dayInfo.setToday(true);
+                baseDayInfo.setToday(true);
             }
-            dayInfoList.add(dayInfo);
+            dayInfoList.add(baseDayInfo);
             calendar.add(Calendar.DATE, 1);
         }
         return dayInfoList;
     }
 
-    public DayInfo getDayInfo(Calendar calendar) {
-        List<DayInfo> weekDayInfoList = getWeekDayInfoList(calendar);
-        for (DayInfo dayInfo : weekDayInfoList) {
-            if (TimeUtils.isSameDay(calendar, dayInfo.getCalendar())) {
-                return dayInfo;
+    public static BaseDayInfo getDayInfo(Calendar calendar) {
+        List<BaseDayInfo> weekDayInfoList = getWeekDayInfoList(calendar);
+        for (BaseDayInfo baseDayInfo : weekDayInfoList) {
+            if (TimeUtils.isSameDay(calendar, baseDayInfo.getCalendar())) {
+                return baseDayInfo;
             }
         }
-        return new DayInfo();
+        return new BaseDayInfo();
     }
 
     /**
@@ -209,7 +209,7 @@ public class CalendarDataCenter {
      * @param calendar
      * @return 指定月份的节假日期数组
      */
-    public List<Integer> getHoliday(Calendar calendar) {
+    public static List<Integer> getHoliday(Calendar calendar) {
         return getHoliday(calendar, HolidayType.HOLIDAY);
     }
 
@@ -219,11 +219,11 @@ public class CalendarDataCenter {
      * @param calendar
      * @return 指定月份的补休日期数组
      */
-    public List<Integer> getDeffered(Calendar calendar) {
+    public static List<Integer> getDeffered(Calendar calendar) {
         return getHoliday(calendar, HolidayType.DEFFERED);
     }
 
-    public List<Integer> getHoliday(Calendar calendar, @HolidayType int type) {
+    public static List<Integer> getHoliday(Calendar calendar, @HolidayType int type) {
 
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH);
@@ -300,14 +300,14 @@ public class CalendarDataCenter {
         }
     }
 
-    private SPUtils getHolidayCache() {
+    private static SPUtils getHolidayCache() {
         if (holidayCache == null) {
-            holidayCache = new SPUtils(mContext, CalendarConst.SPFileName.CALENDAR_SETTING);
+            holidayCache = SPUtils.create(mContext, CalendarConst.SPFileName.CALENDAR_SETTING);
         }
         return holidayCache;
     }
 
-    public List<String> getWeekTitleList(Context context) {
+    public static List<String> getWeekTitleList(Context context) {
         int firstDay = getWeekFirstDay();
         List<String> titleList = new ArrayList<>();
         if (firstDay == Calendar.SUNDAY) {
@@ -325,7 +325,7 @@ public class CalendarDataCenter {
      * @param date     {@link Calendar#DAY_OF_WEEK}
      * @return
      */
-    public List<Integer> getWeekend(Calendar calendar, int date) {
+    public static List<Integer> getWeekend(Calendar calendar, int date) {
         SparseArray<SparseArray<List<Integer>>> dateArray = null;
         if (date == Calendar.SATURDAY) {
             dateArray = saturdayArray;

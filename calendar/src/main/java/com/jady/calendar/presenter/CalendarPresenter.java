@@ -1,8 +1,8 @@
 package com.jady.calendar.presenter;
 
 import com.jady.calendar.model.annotations.CalendarType;
+import com.jady.calendar.model.data.BaseDayInfo;
 import com.jady.calendar.model.data.CalendarDataCenter;
-import com.jady.calendar.model.data.DayInfo;
 import com.jady.calendar.utils.ThreadCallback;
 import com.jady.calendar.utils.ThreadUtils;
 import com.jady.calendar.view.ICalendarView;
@@ -17,7 +17,7 @@ import java.util.concurrent.ExecutionException;
  */
 public class CalendarPresenter {
     private ICalendarView mCalendarView;
-    private List<DayInfo> dataList;
+    private List<BaseDayInfo> dataList;
 
     public CalendarPresenter(ICalendarView mCalendarView) {
         this.mCalendarView = mCalendarView;
